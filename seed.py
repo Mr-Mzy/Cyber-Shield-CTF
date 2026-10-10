@@ -82,12 +82,12 @@ CHALLENGES = [
             "been written by the suspected attacker."
         ),
         description="Decrypt the supplied ciphertext to recover the flag.",
-        flag="CS{cl4ss1c_c1ph3r_br0k3n}",
+        flag="CS{d0ubl3_l4y3r_d3c0d3d}",
         file_path="cs03_broken_cipher/ciphertext.txt",
         hints=[
-            "Look for repeated patterns and unusual character distributions.",
-            "The message uses a simple technique rather than modern strong encryption.",
-            "Try a classical substitution/shift approach and verify the resulting plaintext.",
+            "Look closely at the character set used here -- only letters, digits, +, / and = padding at the end. That is a strong signal about the first layer.",
+            "Decoding the first layer will not give you readable English yet -- a second, classical layer sits underneath it.",
+            "The second layer is a simple alphabet shift. You do not need to guess the exact shift by hand -- let a brute-force tool try all of them at once.",
         ],
     ),
     dict(
@@ -170,38 +170,52 @@ def seed():
             )
             db.session.add(admin)
 
+        
         for c in CHALLENGES:
-            if Challenge.query.filter_by(code=c["code"]).first():
-                continue  # already seeded, skip it
+            ch = Challenge.query.filter_by(code=c["code"]).first()
 
-            ch = Challenge(
-                code=c["code"],
-                name=c["name"],
-                category=c["category"],
-                difficulty=c["difficulty"],
-                scenario=c["scenario"],
-                description=c["description"],
-                flag_hash=generate_password_hash(c["flag"]),
-                order_index=c["order_index"],
-                file_path=c["file_path"],
-                points=c["points"],
-            )
-            db.session.add(ch)
+            if ch is None:
+                ch = Challenge(
+                    code=c["code"],
+                    name=c["name"],
+                    category=c["category"],
+                    difficulty=c["difficulty"],
+                    scenario=c["scenario"],
+                    description=c["description"],
+                    flag_hash=generate_password_hash(c["flag"]),
+                    order_index=c["order_index"],
+                    file_path=c.get("file_path"),
+                    points=c["points"],
+                )
+                db.session.add(ch)
+                db.session.flush()
+            else:
+                ch.name = c["name"]
+                ch.category = c["category"]
+                ch.difficulty = c["difficulty"]
+                ch.scenario = c["scenario"]
+                ch.description = c["description"]
+                ch.flag_hash = generate_password_hash(c["flag"])
+                ch.order_index = c["order_index"]
+                ch.file_path = c.get("file_path")
+                ch.points = c["points"]
 
-            # flush() sends the INSERT to the database (without fully
-            # committing yet) so ch.id gets assigned -- we need that id
-            # below to attach Hint rows to the right challenge.
-            db.session.flush()
+                Hint.query.filter_by(challenge_id=ch.id).delete(
+                    synchronize_session=False
+                )
 
-            for i, text in enumerate(c["hints"]):
+            for i, hint_text in enumerate(c["hints"]):
                 db.session.add(
-                    Hint(challenge_id=ch.id, text=text, order_index=i, point_cost=10)
+                    Hint(
+                        challenge_id=ch.id,
+                        text=hint_text,
+                        order_index=i,
+                        point_cost=10,
+                    )
                 )
 
         db.session.commit()
-        print("Seed complete.")
-        print("Admin login -> username: admin | password: ChangeMe123!")
-        print("IMPORTANT: change the admin password AND every challenge flag before real use.")
+        print("Challenges and hints updated successfully.")
 
 
 if __name__ == "__main__":

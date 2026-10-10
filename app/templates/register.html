@@ -1,0 +1,22 @@
+<!--
+    register.html
+    -------------
+    Route: auth.register ("/register").
+-->
+{% extends "base.html" %}
+{% block title %}Register &mdash; CyberShield{% endblock %}
+{% block content %}
+<div class="auth-box">
+    <h2>&gt; New Analyst Registration</h2>
+    <form method="POST">
+        <label for="username">Choose a username</label>
+        <input type="text" name="username" id="username" required autofocus>
+
+        <label for="password">Choose a password</label>
+        <input type="password" name="password" id="password" required>
+
+        <button type="submit" class="btn">Create Account</button>
+    </form>
+    <p class="alt-link">Already registered? <a href="{{ url_for('auth.login') }}">Login</a></p>
+</div>
+{% endblock %}

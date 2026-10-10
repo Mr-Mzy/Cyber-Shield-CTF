@@ -1,0 +1,37 @@
+<!--
+    challenges.html
+    ---------------
+    Route: main.challenge_list ("/challenges"). Shows every stage as a
+    card. Passed in from routes.py:
+      challenges - every Challenge row, in stage order
+      progress   - dict {challenge_id: this player's Progress row}
+-->
+{% extends "base.html" %}
+{% block title %}Challenges &mdash; CyberShield{% endblock %}
+{% block content %}
+<h2 class="section-title first"><i class="fa-solid fa-flag icon-cyan"></i> Challenges</h2>
+<p class="dim">Progress through the CyberShield incident. Each stage unlocks the next.</p>
+
+<div class="challenge-grid">
+    {% for ch in challenges %}
+        {# progress is a dict {challenge_id: Progress row} built in routes.py #}
+        {% set p = progress.get(ch.id) %}
+        <div class="challenge-card {{ 'solved' if p and p.solved else ('locked' if not p or not p.unlocked else '') }}">
+            <div class="challenge-header">
+                <span class="challenge-code">{{ ch.code }}</span>
+                <span class="challenge-difficulty diff-{{ ch.difficulty|lower|replace('-', '') }}">{{ ch.difficulty }}</span>
+            </div>
+            <h3>{{ ch.name }}</h3>
+            <p class="challenge-category">{{ ch.category }} &middot; {{ ch.points }} pts</p>
+
+            {% if p and p.solved %}
+                <p class="status status-solved"><i class="fa-solid fa-circle-check"></i> SOLVED</p>
+            {% elif p and p.unlocked %}
+                <a class="btn btn-small" href="{{ url_for('main.detail', code=ch.code) }}">Investigate &rarr;</a>
+            {% else %}
+                <p class="status status-locked"><i class="fa-solid fa-lock"></i> LOCKED</p>
+            {% endif %}
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

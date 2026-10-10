@@ -1,0 +1,45 @@
+<!--
+    index.html
+    ----------
+    The public landing page (route: main.index, i.e. "/").
+    No login required to view this one.
+-->
+{% extends "base.html" %}
+{% block title %}CyberShield CTF{% endblock %}
+{% block content %}
+<section class="hero">
+    <h1 class="glitch" data-text="CYBERSHIELD">CYBERSHIELD</h1>
+    <p class="subtitle">Corporate Cybersecurity Incident Investigation</p>
+    <!-- This <p> starts empty; main.js's typeWriter() function (called
+         below) fills it in one character at a time for a "typing" effect. -->
+    <p class="typewriter" id="intro-text"></p>
+    <div class="hero-actions">
+        {% if current_user.is_authenticated %}
+            <a class="btn" href="{{ url_for('main.dashboard') }}">Enter the Investigation</a>
+        {% else %}
+            <a class="btn" href="{{ url_for('auth.register') }}">Get Access</a>
+            <a class="btn btn-outline" href="{{ url_for('auth.login') }}">Login</a>
+        {% endif %}
+    </div>
+</section>
+
+<section class="stage-preview">
+    <div class="stage-card">CS-01 &middot; Hidden Message &middot; Steganography</div>
+    <div class="stage-card">CS-02 &middot; The Recon Trail &middot; OSINT</div>
+    <div class="stage-card">CS-03 &middot; Broken Cipher &middot; Cryptography</div>
+    <div class="stage-card">CS-04 &middot; Vulnerable Portal &middot; Web Security</div>
+    <div class="stage-card">CS-05 &middot; The Missing Evidence &middot; Forensics</div>
+    <div class="stage-card">CS-06 &middot; Compromised Server &middot; Linux Security</div>
+</section>
+
+<script>
+  // main.js (which defines typeWriter) is loaded at the very bottom of
+  // base.html, AFTER this inline script would normally run. Waiting for
+  // DOMContentLoaded guarantees main.js is ready before we call it.
+  document.addEventListener("DOMContentLoaded", function () {
+    typeWriter("intro-text",
+      "CyberShield Technologies has detected a sequence of suspicious events. " +
+      "You are a junior penetration tester assigned to the case. Six stages. One flag format: CS{...}. Good luck.");
+  });
+</script>
+{% endblock %}

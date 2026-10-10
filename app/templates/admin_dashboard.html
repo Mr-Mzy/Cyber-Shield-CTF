@@ -1,0 +1,33 @@
+<!--
+    admin_dashboard.html
+    --------------------
+    Route: main.admin_dashboard ("/admin"). Only reachable by users
+    with is_admin=True -- enforced in require_admin() in routes.py,
+    NOT by anything in this template. A template can only hide a link;
+    the real security check has to happen on the server.
+-->
+{% extends "base.html" %}
+{% block title %}Admin &mdash; CyberShield{% endblock %}
+{% block content %}
+<h2>&gt; Admin Console</h2>
+<p class="dim">{{ user_count }} registered analysts.</p>
+
+<table class="scoreboard">
+    <thead>
+        <tr><th>Code</th><th>Name</th><th>Category</th><th>Solves</th><th>Attempts</th></tr>
+    </thead>
+    <tbody>
+        {% for row in stats %}
+        <tr>
+            <td>{{ row.challenge.code }}</td>
+            <td>{{ row.challenge.name }}</td>
+            <td>{{ row.challenge.category }}</td>
+            <td>{{ row.solves }}</td>
+            <td>{{ row.attempts }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p><a class="btn btn-small" href="{{ url_for('main.admin_logs') }}">View Logs</a></p>
+{% endblock %}

@@ -1,0 +1,28 @@
+# docker-compose.yml
+# ------------------
+# Runs the CyberShield platform container. CS-04 and CS-06's own
+# docker-compose files (once you build them) should each define a
+# SEPARATE network, so those vulnerable services stay isolated from
+# this platform and from each other.
+
+services:
+  ctf-platform:
+    build: .
+    container_name: cybershield-platform
+    ports:
+      - "5000:5000"
+    volumes:
+      # read-only mount: the container can serve these files but not
+      # modify them.
+      - ./challenges:/app/challenges:ro
+      # NOT read-only: the app needs to write to the database file here.
+      - ./database:/app/database
+    environment:
+      - SECRET_KEY=change-this-in-production
+    networks:
+      - ctf-net
+    restart: unless-stopped
+
+networks:
+  ctf-net:
+    driver: bridge

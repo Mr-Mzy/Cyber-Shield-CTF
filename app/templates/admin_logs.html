@@ -1,0 +1,26 @@
+<!--
+    admin_logs.html
+    ---------------
+    Route: main.admin_logs ("/admin/logs"). `entries` is a list of
+    LogEntry rows, newest first, from admin_logs() in routes.py.
+-->
+{% extends "base.html" %}
+{% block title %}Logs &mdash; CyberShield{% endblock %}
+{% block content %}
+<h2>&gt; System Logs</h2>
+<table class="scoreboard logs-table">
+    <thead>
+        <tr><th>Time (UTC)</th><th>Event</th><th>Detail</th></tr>
+    </thead>
+    <tbody>
+        {% for entry in entries %}
+        <tr>
+            <td>{{ entry.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            <td>{{ entry.event_type }}</td>
+            <td>{{ entry.detail }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<p><a class="alt-link" href="{{ url_for('main.admin_dashboard') }}">&larr; Back to admin console</a></p>
+{% endblock %}

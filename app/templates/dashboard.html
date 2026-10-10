@@ -1,0 +1,132 @@
+<!--
+    dashboard.html
+    --------------
+    Route: main.dashboard ("/dashboard"). Passed in from routes.py:
+      stats - the numbers for the analytics section (built by
+                   build_dashboard_stats in routes.py)
+-->
+{% extends "base.html" %}
+{% block title %}Dashboard &mdash; CyberShield{% endblock %}
+{% block content %}
+
+<!-- ================= 1. TWO METRIC BOXES ================= -->
+<section class="metric-grid">
+
+    <!-- Box 1: challenges completed -->
+    <div class="card metric-card glow-cyan hover-cyan">
+        <i class="fa-solid fa-flag-checkered metric-bgicon icon-cyan"></i>
+        <div class="metric-top">
+            <div>
+                <p class="metric-label">Challenges Completed</p>
+                <h3 class="metric-value">{{ stats.solved_count }}
+                    <span class="metric-unit text-cyan">/ {{ stats.total_challenges }}</span>
+                </h3>
+            </div>
+            <div class="metric-icon metric-icon-cyan"><i class="fa-solid fa-check-double"></i></div>
+        </div>
+        <div class="metric-foot text-green">
+            <i class="fa-solid fa-arrow-up"></i>
+            <span>+{{ stats.solved_24h }} solved in the last 24h</span>
+        </div>
+    </div>
+
+    <!-- Box 2: total score and rank -->
+    <div class="card metric-card glow-purple hover-purple">
+        <i class="fa-solid fa-trophy metric-bgicon icon-purple"></i>
+        <div class="metric-top">
+            <div>
+                <p class="metric-label">Total Score</p>
+                <h3 class="metric-value">{{ "{:,}".format(stats.score) }}
+                    <span class="metric-unit text-purple">PTS</span>
+                </h3>
+                {% if stats.hint_penalty %}
+                    <p class="metric-note">includes -{{ stats.hint_penalty }} pts spent on hints</p>
+                {% endif %}
+            </div>
+            <div class="metric-icon metric-icon-purple"><i class="fa-solid fa-bolt"></i></div>
+        </div>
+        <div class="metric-foot text-purple">
+            <i class="fa-solid fa-ranking-star"></i>
+            {% if stats.rank %}
+                <span>Global Rank: #{{ stats.rank }} / {{ stats.total_players }}</span>
+            {% else %}
+                <span>Admin account (not ranked)</span>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<!-- ================= 2. CHART + CATEGORY BREAKDOWN ================= -->
+<section class="analytics-grid">
+
+    <!-- Score progression chart. The line is an SVG path computed on the
+         server (routes.py); the dots are plain HTML placed with percents. -->
+    <div class="card chart-card">
+        <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-chart-line icon-cyan"></i> Score Progression</div>
+            <span class="chip">LIVE TIMELINE</span>
+        </div>
+
+        <div class="chart-wrap">
+            <div class="chart-grid">
+                <div></div><div></div><div></div><div></div>
+            </div>
+
+            <svg class="chart-svg" preserveAspectRatio="none" viewBox="0 0 500 200">
+                <defs>
+                    <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.3"></stop>
+                        <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.0"></stop>
+                    </linearGradient>
+                </defs>
+                <path d="{{ stats.area_path }}" fill="url(#chartGradient)"></path>
+                <path d="{{ stats.line_path }}" class="chart-line"></path>
+            </svg>
+
+            {% for dot in stats.dots %}
+                <div class="chart-dot {{ 'chart-dot-last' if loop.last else '' }}"
+                     style="left: {{ dot.left }}%; bottom: {{ dot.bottom }}%;"></div>
+            {% endfor %}
+
+            {% if not stats.dots %}
+                <div class="chart-empty">No flags captured yet &mdash; solve CS-01 to start your line.</div>
+            {% endif %}
+        </div>
+
+        <div class="chart-axis">
+            <span>START</span>
+            <span>{{ stats.solved_count }} SOLVED</span>
+            <span>NOW</span>
+        </div>
+    </div>
+
+    <!-- Category breakdown: one progress bar per category -->
+    <div class="card">
+        <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-layer-group icon-purple"></i> Category Breakdown</div>
+            <span class="chip chip-purple">SOLVES</span>
+        </div>
+
+        <div class="bars">
+            {% for cat in stats.categories %}
+                <!-- loop.index0 % 6 picks one of six gradient colours -->
+                {% set tone = loop.index0 % 6 %}
+                <div class="bar-row">
+                    <div class="bar-label">
+                        <span><i class="fa-solid {{ cat.icon }} tone-{{ tone }}"></i> {{ cat.name }}</span>
+                        <strong class="tone-{{ tone }}">{{ cat.solved }} / {{ cat.total }}</strong>
+                    </div>
+                    <div class="bar-track">
+                        <div class="bar-fill fill-{{ tone }}" style="width: {{ cat.pct }}%"></div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="completion">
+            COMPLETION RATE: <strong>{{ stats.completion }}%</strong>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

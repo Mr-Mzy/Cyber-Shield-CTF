@@ -1,0 +1,147 @@
+<!--
+    challenge.html
+    --------------
+    Route: main.detail ("/challenge/<code>"). Shows the scenario,
+    objective, downloadable file (if any), hints, and the flag
+    submission box for ONE challenge.
+
+    The flag submission form at the bottom uses JavaScript (fetch)
+    to POST to /submit/<code> WITHOUT reloading the page, and reads
+    back the JSON response from submit() in app/routes.py.
+-->
+{% extends "base.html" %}
+{% block title %}{{ challenge.code }} &mdash; CyberShield{% endblock %}
+{% block content %}
+<div class="challenge-detail">
+    <div class="case-file-header">
+        <span class="stamp">CASE FILE</span>
+        <h2>{{ challenge.code }} &mdash; {{ challenge.name }}</h2>
+        <p class="challenge-category">{{ challenge.category }} &middot; {{ challenge.difficulty }} &middot; {{ challenge.points }} pts</p>
+    </div>
+
+    {% if challenge.scenario %}
+    <div class="panel">
+        <h3>Scenario</h3>
+        <p>{{ challenge.scenario }}</p>
+    </div>
+    {% endif %}
+
+    <div class="panel">
+        <h3>Objective</h3>
+        <p>{{ challenge.description }}</p>
+    </div>
+
+    {% if challenge.file_path %}
+    <div class="panel">
+        <h3>Challenge File</h3>
+        <a class="btn btn-small" href="{{ url_for('main.challenge_file', code=challenge.code) }}">Download File</a>
+    </div>
+    {% endif %}
+
+    <div class="panel">
+        <h3>Hints</h3>
+        <p class="hint-note">Each hint costs points, taken off your score the moment you reveal it.
+            Hints on a stage you have already solved are free.</p>
+        <div class="hints">
+            {% for hint in challenge.hints %}
+                {# revealed_ids = hints this player already paid for (from routes.py) #}
+                {% set shown = hint.id in revealed_ids %}
+                <!-- The hint TEXT is not in this page until it is revealed. The button
+                     asks the server (route: main.reveal_hint), which records the
+                     payment and then sends the text back. -->
+                <button type="button"
+                        class="hint-toggle {{ 'used' if shown else '' }}"
+                        data-hint-id="{{ hint.id }}"
+                        data-cost="{{ 0 if progress.solved else hint.point_cost }}"
+                        data-number="{{ loop.index }}"
+                        {{ 'disabled' if shown else '' }}>
+                    {% if shown %}
+                        Hint {{ loop.index }} revealed
+                    {% else %}
+                        Reveal Hint {{ loop.index }} (-{{ 0 if progress.solved else hint.point_cost }} pts)
+                    {% endif %}
+                </button>
+                <p class="hint-text {{ '' if shown else 'hidden' }}" id="hint-text-{{ hint.id }}">{% if shown %}{{ hint.text }}{% endif %}</p>
+            {% endfor %}
+        </div>
+        <p id="hint-result" class="hint-note"></p>
+    </div>
+
+    <div class="panel submit-panel">
+        <h3>Submit Flag</h3>
+        <!-- data-code stores the challenge code so the <script> below
+             knows which /submit/<code> URL to POST to. -->
+        <form id="flag-form" data-code="{{ challenge.code }}">
+            <input type="text" id="flag-input" placeholder="CS{...}" autocomplete="off" required>
+            <button type="submit" class="btn">Submit</button>
+        </form>
+        <p id="submit-result"></p>
+    </div>
+
+    <a class="alt-link" href="{{ url_for('main.challenge_list') }}">&larr; Back to challenges</a>
+</div>
+
+<script>
+// This runs in the BROWSER, not on the server -- it's what makes flag
+// submission happen instantly without a full page reload.
+document.getElementById('flag-form').addEventListener('submit', async function(e) {
+    e.preventDefault();  // stop the browser's default "reload the page" form behavior
+
+    const code = this.dataset.code;
+    const flag = document.getElementById('flag-input').value;
+    const resultEl = document.getElementById('submit-result');
+
+    // fetch() sends an HTTP request from JavaScript. This POSTs to
+    // /submit/<code>, which is handled by submit() in app/routes.py.
+    const res = await fetch(`/submit/${code}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `flag=${encodeURIComponent(flag)}`
+    });
+
+    // submit() in routes.py returns jsonify(correct=..., unlocked_next=...)
+    // -- res.json() parses that JSON back into a JS object.
+    const data = await res.json();
+
+    if (data.correct) {
+        resultEl.textContent = '✔ Correct. Evidence logged.' + (data.unlocked_next ? ` ${data.unlocked_next} unlocked.` : '');
+        resultEl.className = 'result-correct';
+    } else {
+        resultEl.textContent = '✘ Incorrect flag. Try again.';
+        resultEl.className = 'result-incorrect';
+    }
+});
+
+// ---------- hint buttons ----------
+// Clicking a hint button asks the server to reveal it. The server
+// records the cost, then sends the hint text back; only then do we
+// show it. Revealing an already-revealed hint never charges twice.
+document.querySelectorAll('.hint-toggle').forEach(function(btn) {
+    btn.addEventListener('click', async function() {
+        const cost = parseInt(btn.dataset.cost, 10);
+        const number = btn.dataset.number;
+
+        if (cost > 0 && !confirm(`Revealing hint ${number} costs ${cost} points. Continue?`)) {
+            return;  // player changed their mind: nothing is charged
+        }
+
+        const res = await fetch(`/hint/${btn.dataset.hintId}/reveal`, { method: 'POST' });
+        if (!res.ok) { return; }
+        const data = await res.json();
+
+        const textEl = document.getElementById('hint-text-' + btn.dataset.hintId);
+        textEl.textContent = data.text;          // textContent = safe, no HTML injection
+        textEl.classList.remove('hidden');
+
+        btn.classList.add('used');
+        btn.disabled = true;
+        btn.textContent = `Hint ${number} revealed`;
+
+        const note = document.getElementById('hint-result');
+        note.textContent = data.charged > 0
+            ? `-${data.charged} pts deducted. Your rank updates when you reload.`
+            : 'No points deducted.';
+    });
+});
+</script>
+{% endblock %}

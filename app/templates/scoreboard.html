@@ -1,0 +1,30 @@
+<!--
+    scoreboard.html
+    ---------------
+    Route: main.scoreboard ("/scoreboard"). `board` is the sorted list
+    from build_leaderboard() in routes.py, so rows are already in rank
+    order. The signed-in player's own row is highlighted.
+-->
+{% extends "base.html" %}
+{% block title %}Scoreboard &mdash; CyberShield{% endblock %}
+{% block content %}
+<h2 class="section-title"><i class="fa-solid fa-trophy icon-yellow"></i> Network Status Board</h2>
+<table class="scoreboard">
+    <thead>
+        <tr><th>Rank</th><th>Analyst</th><th>Stages Solved</th><th>Points</th></tr>
+    </thead>
+    <tbody>
+        {% for row in board %}
+        <tr class="{{ 'me' if row.user_id == current_user.id else '' }}">
+            <td>#{{ row.rank }}</td>
+            <td>{{ row.username }}{% if row.user_id == current_user.id %} <span class="you-tag">YOU</span>{% endif %}</td>
+            <td>{{ row.solved }} / {{ total_challenges }}</td>
+            <td>{{ row.points }}</td>
+        </tr>
+        {% else %}
+        <!-- a for-loop's else clause runs only if the list was empty -->
+        <tr><td colspan="4" class="dim">No analysts registered yet.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

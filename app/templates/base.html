@@ -1,0 +1,107 @@
+<!--
+    base.html
+    ---------
+    Every other template "extends" this one (see the extends line at the
+    top of dashboard.html, login.html, etc.). This file defines the page
+    shell: the head section, the top navigation bar and the footer. Each
+    page fills in the content "block" in the middle.
+
+    NOTE FOR LEARNERS: this comment deliberately avoids writing real
+    template-tag syntax (curly-brace-percent) even as an example. Jinja
+    runs those tags EVERYWHERE in the file, including inside HTML
+    comments, so an example here would actually execute and break the page.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CyberShield CTF{% endblock %}</title>
+
+    <!-- Font Awesome gives us the little icons (flag, trophy, lock...).
+         It loads from a CDN, so icons need internet; everything else
+         works offline and the page just shows no icons. -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <!-- ================= TOP NAVIGATION BAR ================= -->
+    <header class="navbar">
+        <div class="navbar-inner">
+
+            <!-- Left: logo with a pulsing dot -->
+            <a href="{{ url_for('main.index') }}" class="brand">
+                <span class="pulse-dot"></span>
+                <span class="brand-text">CYBERSHIELD</span>
+            </a>
+
+            <!-- Middle: page links (current_user comes from Flask-Login
+                 and is available in every template automatically) -->
+            <nav class="nav-links">
+                {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('main.dashboard') }}"><i class="fa-solid fa-terminal"></i> Dashboard</a>
+                    <a href="{{ url_for('main.challenge_list') }}"><i class="fa-solid fa-flag"></i> Challenges</a>
+                    <a href="{{ url_for('main.scoreboard') }}"><i class="fa-solid fa-trophy"></i> Scoreboard</a>
+                    {% if current_user.is_admin %}
+                        <a href="{{ url_for('main.admin_dashboard') }}"><i class="fa-solid fa-user-shield"></i> Admin</a>
+                    {% endif %}
+                {% endif %}
+            </nav>
+
+            <!-- Right: operator + rank badges, then Logout (or Login/Register) -->
+            <div class="nav-right">
+                {% if current_user.is_authenticated %}
+                    <div class="nav-pill">
+                        <i class="fa-solid fa-user-secret icon-purple"></i>
+                        <span class="pill-label">OPERATOR:</span>
+                        <strong class="pill-value">{{ current_user.username }}</strong>
+                    </div>
+
+                    {# nav_rank comes from the context processor in app/routes.py #}
+                    {% if current_user.is_admin %}
+                        <div class="nav-pill">
+                            <i class="fa-solid fa-shield-halved icon-purple"></i>
+                            <span class="pill-label">ROLE:</span>
+                            <strong class="pill-value">ADMIN</strong>
+                        </div>
+                    {% elif nav_rank %}
+                        <div class="nav-pill">
+                            <i class="fa-solid fa-ranking-star icon-cyan"></i>
+                            <span class="pill-label">RANK:</span>
+                            <strong class="pill-value">#{{ nav_rank }}</strong>
+                            <span class="pill-label">/ {{ nav_total_players }}</span>
+                        </div>
+                    {% endif %}
+
+                    <a href="{{ url_for('auth.logout') }}" class="nav-logout">
+                        <i class="fa-solid fa-right-from-bracket"></i> Logout
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('auth.login') }}" class="nav-plain">Login</a>
+                    <a href="{{ url_for('auth.register') }}" class="nav-register">Register</a>
+                {% endif %}
+            </div>
+
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Messages created with flash() in auth.py appear here -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>CYBERSHIELD CTF PLAY BOX &copy; 2026 // AUTHORIZED TRAINING ENVIRONMENT ONLY</p>
+    </footer>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

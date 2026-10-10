@@ -1,0 +1,24 @@
+<!--
+    login.html
+    ----------
+    Route: auth.login ("/login"). Handles both showing the form (GET)
+    and, when submitted, POSTs back to this same URL (no `action`
+    attribute on <form> means "submit to the current page").
+-->
+{% extends "base.html" %}
+{% block title %}Login &mdash; CyberShield{% endblock %}
+{% block content %}
+<div class="auth-box">
+    <h2>&gt; Analyst Login</h2>
+    <form method="POST">
+        <label for="username">Username</label>
+        <input type="text" name="username" id="username" required autofocus>
+
+        <label for="password">Password</label>
+        <input type="password" name="password" id="password" required>
+
+        <button type="submit" class="btn">Authenticate</button>
+    </form>
+    <p class="alt-link">No access yet? <a href="{{ url_for('auth.register') }}">Request an account</a></p>
+</div>
+{% endblock %}

@@ -1,28 +1,58 @@
 # docker-compose.yml
 # ------------------
-# Runs the CyberShield platform container. CS-04 and CS-06's own
-# docker-compose files (once you build them) should each define a
-# SEPARATE network, so those vulnerable services stay isolated from
-# this platform and from each other.
+# Runs the CyberShield platform container with limits and restrictions.
+# Each setting below is something you can point at in the viva.
+#
+# CS-04 (vulnerable web app) and CS-06 (Linux target), once built, get
+# their OWN network (internal: true = no route to the internet or to
+# the platform), so a player who breaks them cannot reach anything else.
 
 services:
   ctf-platform:
     build: .
     container_name: cybershield-platform
+
+    # PORTS: the only door into the platform. Players reach the website
+    # on 5000. The database is a plain file, so it has no port at all.
     ports:
       - "5000:5000"
+
     volumes:
-      # read-only mount: the container can serve these files but not
-      # modify them.
+      # read-only: the container can serve the challenge files but never change them
       - ./challenges:/app/challenges:ro
-      # NOT read-only: the app needs to write to the database file here.
+      # writable: the app must write the database file here
       - ./database:/app/database
+
     environment:
       - SECRET_KEY=change-this-in-production
+
+    # NETWORK SEGMENTATION: the platform lives on its own bridge network,
+    # separate from the host machine's network and from challenge networks.
     networks:
-      - ctf-net
+      - platform-net
+
+    # RESOURCE LIMITS: the platform can never use more than this, so one
+    # busy or broken container cannot freeze the whole laptop/server.
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 200          # caps how many processes it can start
+
+    # PRIVILEGE RESTRICTIONS (container level)
+    security_opt:
+      - no-new-privileges:true   # a process inside can never gain extra rights
+    cap_drop:
+      - ALL                      # removes every special Linux permission; the app needs none
+
+    # Docker checks the website every 30 s and shows healthy / unhealthy
+    # in `docker compose ps`.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
     restart: unless-stopped
 
 networks:
-  ctf-net:
+  platform-net:
     driver: bridge

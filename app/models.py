@@ -40,7 +40,35 @@ class User(db.Model, UserMixin):
     # Marks whether this account can see /admin pages.
     is_admin = db.Column(db.Boolean, default=False)
 
+    # ------------------------------------------------------------------
+    # status: the registration-approval state of this account.
+    #   "pending"  -> just registered, waiting for an admin to decide
+    #   "approved" -> allowed to log in
+    #   "rejected" -> the admin declined the request
+    # New sign-ups start as "pending" (set in auth.py). server_default
+    # is what the database fills in for rows that exist WITHOUT a value
+    # (accounts created before this feature) -- those are "approved",
+    # so nobody who already had an account gets locked out.
+    # ------------------------------------------------------------------
+    status = db.Column(
+        db.String(16), nullable=False, default="pending", server_default="approved"
+    )
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def is_approved(self):
+        """True when an admin has approved this account."""
+        return self.status == "approved"
+
+    @property
+    def is_active(self):
+        """
+        Flask-Login asks every user object "are you active?". We say
+        yes only for approved accounts, so a pending or rejected
+        account can never be logged in, even by mistake.
+        """
+        return self.is_approved
 
 
 class Challenge(db.Model):

@@ -1,0 +1,29 @@
+<!--
+    admin_base.html
+    ---------------
+    The shared frame for every admin page: the page heading and the tab
+    bar for the three sections. Each admin page extends THIS file and
+    fills in the admin content block. The route passes active_tab
+    (matrix, requests or stats) so the right tab is highlighted.
+    pending_requests (the red badge number) comes from the context
+    processor in app/routes.py.
+-->
+{% extends "base.html" %}
+{% block content %}
+<h2 class="section-title first"><i class="fa-solid fa-user-shield icon-purple"></i> Admin Panel</h2>
+
+<nav class="admin-tabs">
+    <a class="admin-tab {{ 'active' if active_tab == 'matrix' else '' }}" href="{{ url_for('admin.matrix') }}">
+        <i class="fa-solid fa-table-cells"></i> Active Challenge Matrix
+    </a>
+    <a class="admin-tab {{ 'active' if active_tab == 'requests' else '' }}" href="{{ url_for('admin.requests_page') }}">
+        <i class="fa-solid fa-user-clock"></i> Registration Requests
+        {% if pending_requests %}<span class="badge">{{ pending_requests }}</span>{% endif %}
+    </a>
+    <a class="admin-tab {{ 'active' if active_tab == 'stats' else '' }}" href="{{ url_for('admin.statistics') }}">
+        <i class="fa-solid fa-chart-column"></i> Challenge Statistics
+    </a>
+</nav>
+
+{% block admin_content %}{% endblock %}
+{% endblock %}

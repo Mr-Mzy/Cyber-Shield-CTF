@@ -840,9 +840,9 @@ table.scoreboard tbody tr:hover { background: rgba(6, 182, 212, 0.06); }
 table.scoreboard tbody tr:last-child td { border-bottom: none; }
 
 /* podium colours for the top three ranks */
-table.scoreboard tbody tr:nth-child(1) td:first-child { color: var(--amber-400); font-weight: 700; }
-table.scoreboard tbody tr:nth-child(2) td:first-child { color: var(--text-300);  font-weight: 700; }
-table.scoreboard tbody tr:nth-child(3) td:first-child { color: var(--orange);    font-weight: 700; }
+table.scoreboard:not(.flat) tbody tr:nth-child(1) td:first-child { color: var(--amber-400); font-weight: 700; }
+table.scoreboard:not(.flat) tbody tr:nth-child(2) td:first-child { color: var(--text-300);  font-weight: 700; }
+table.scoreboard:not(.flat) tbody tr:nth-child(3) td:first-child { color: var(--orange);    font-weight: 700; }
 
 /* the signed-in player's own row */
 table.scoreboard tbody tr.me { background: rgba(139, 92, 246, 0.1); }
@@ -858,6 +858,226 @@ table.scoreboard tbody tr.me { background: rgba(139, 92, 246, 0.1); }
 }
 
 .logs-table td { font-size: 0.75rem; color: var(--text-300); }
+
+
+/* ================================================================
+   ADMIN PANEL
+   Tabs, notice bar, request buttons, statistics cards, search bar,
+   per-player progress chips.
+   ================================================================ */
+
+/* small red number on the Admin link / Registration Requests tab */
+.badge {
+    display: inline-block;
+    min-width: 18px;
+    margin-left: 0.35rem;
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+    background: var(--red);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    line-height: 1.3;
+    text-align: center;
+}
+
+.admin-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1rem 0 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.admin-tab {
+    padding: 0.55rem 1.1rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-400);
+    font-size: 0.78rem;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.admin-tab i { margin-right: 0.4rem; }
+.admin-tab:hover { color: var(--cyan-400); border-color: rgba(6, 182, 212, 0.4); }
+
+.admin-tab.active {
+    color: var(--cyan-400);
+    background: rgba(6, 182, 212, 0.1);
+    border-color: var(--cyan);
+    box-shadow: 0 0 16px rgba(6, 182, 212, 0.15);
+}
+
+.notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.7rem;
+    margin-bottom: 1.25rem;
+    padding: 0.8rem 1.1rem;
+    background: rgba(6, 182, 212, 0.06);
+    border: 1px solid rgba(6, 182, 212, 0.25);
+    border-radius: 10px;
+    color: var(--text-300);
+    font-size: 0.78rem;
+    line-height: 1.6;
+}
+
+.card.spaced { margin-top: 1.75rem; }
+
+/* tables inside cards: no second border, can scroll sideways on phones */
+.table-scroll { overflow-x: auto; }
+table.scoreboard.flat { margin-top: 0; border: none; border-radius: 0; background: transparent; }
+table.scoreboard th.right, table.scoreboard td.right { text-align: right; }
+.dim-cell { color: var(--text-500); }
+.empty { margin: 0.5rem 0; color: var(--text-400); font-size: 0.82rem; }
+.text-amber { color: var(--amber-400); }
+.text-rose  { color: var(--rose-400); }
+
+/* completion bars inside table cells */
+.bar-cell { white-space: nowrap; }
+.bar-cell span { margin-left: 0.5rem; color: var(--text-300); font-size: 0.75rem; }
+
+.mini-bar {
+    display: inline-block;
+    width: 90px;
+    height: 6px;
+    vertical-align: middle;
+    overflow: hidden;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+}
+
+.mini-fill { height: 100%; background: linear-gradient(to right, var(--cyan), var(--purple)); }
+
+/* approve / reject buttons */
+.actions { white-space: nowrap; }
+.inline-form { display: inline-block; margin: 0 0 0 0.4rem; }
+
+.act {
+    padding: 0.35rem 0.85rem;
+    background: transparent;
+    border: 1px solid;
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+.act-approve { color: var(--green-400); border-color: rgba(16, 185, 129, 0.5); }
+.act-approve:hover { background: rgba(16, 185, 129, 0.15); box-shadow: 0 0 12px rgba(16, 185, 129, 0.3); }
+.act-reject { color: var(--rose-400); border-color: rgba(244, 63, 94, 0.5); }
+.act-reject:hover { background: rgba(244, 63, 94, 0.15); box-shadow: 0 0 12px rgba(244, 63, 94, 0.3); }
+
+.approve-all { margin-top: 1rem; text-align: right; }
+.approve-all .btn { margin: 0; }
+
+/* statistics summary cards */
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 1rem 1.2rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.stat-num { font-size: 1.6rem; font-weight: 800; color: #fff; }
+.stat-num small { font-size: 0.8rem; font-weight: 400; color: var(--text-500); }
+.stat-num.dim-num { font-size: 1.1rem; padding-top: 0.35rem; color: var(--text-300); }
+.stat-label { color: var(--text-400); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; }
+
+/* username search bar */
+.search-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; margin-bottom: 1.25rem; }
+.search-bar .btn { margin: 0; }
+
+.search-field { position: relative; flex: 1; min-width: 220px; }
+.search-field i { position: absolute; left: 0.8rem; top: 50%; transform: translateY(-50%); color: var(--text-500); font-size: 0.8rem; }
+
+.search-field input {
+    width: 100%;
+    padding: 0.6rem 0.9rem 0.6rem 2.2rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: #fff;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+}
+
+.search-bar select {
+    padding: 0.6rem 0.8rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-300);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+}
+
+.search-field input:focus, .search-bar select:focus {
+    outline: none;
+    border-color: var(--cyan);
+    box-shadow: 0 0 15px rgba(6, 182, 212, 0.25);
+}
+
+.user-link { color: var(--cyan-400); text-decoration: none; font-weight: 700; }
+.user-link:hover { text-decoration: underline; }
+
+/* per-challenge squares: 01 02 03 ... */
+.chips { white-space: nowrap; }
+
+.chip-ch {
+    display: inline-block;
+    min-width: 26px;
+    margin-right: 3px;
+    padding: 0.2rem 0.35rem;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.ch-solved { background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.5); color: var(--green-400); }
+.ch-open   { background: rgba(6, 182, 212, 0.1);  border-color: rgba(6, 182, 212, 0.4);  color: var(--cyan-400); }
+.ch-locked { background: transparent; color: var(--text-500); }
+
+.legend { margin: 1rem 0 0; color: var(--text-500); font-size: 0.7rem; }
+.legend .chip-ch { margin-left: 0.8rem; margin-right: 0.3rem; }
+
+.state-pill {
+    padding: 0.15rem 0.6rem;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.st-solved { color: var(--green-400); }
+.st-open   { color: var(--cyan-400); }
+.st-locked { color: var(--text-500); }
+
+.activity { margin: 0; padding: 0; list-style: none; font-size: 0.78rem; color: var(--text-300); }
+.activity li { padding: 0.5rem 0; border-bottom: 1px solid rgba(30, 41, 59, 0.6); }
+.activity li:last-child { border-bottom: none; }
+.activity .chip { margin: 0 0.4rem; }
+
+.alt-link.back { display: inline-block; margin: 0 0 1rem; }
 
 /* ================================================================
    13. FOOTER + RESPONSIVE + REDUCED MOTION
@@ -889,3 +1109,8 @@ footer {
     .pulse-dot, .chart-dot-last { animation: none; }
     .btn, .challenge-card, .stage-card, .bar-fill { transition: none; }
 }
+
+/* keep badges on one line inside table cells (admin matrix + statistics) */
+table.scoreboard .challenge-code,
+table.scoreboard .challenge-difficulty,
+table.scoreboard .state-pill { display: inline-block; white-space: nowrap; }

@@ -16,7 +16,7 @@
     {% for ch in challenges %}
         {# progress is a dict {challenge_id: Progress row} built in routes.py #}
         {% set p = progress.get(ch.id) %}
-        <div class="challenge-card {{ 'solved' if p and p.solved else ('locked' if not p or not p.unlocked else '') }}">
+        <div class="challenge-card {{ 'solved' if p and p.solved else ('locked' if (not p or not p.unlocked) and not current_user.is_admin else '') }}">
             <div class="challenge-header">
                 <span class="challenge-code">{{ ch.code }}</span>
                 <span class="challenge-difficulty diff-{{ ch.difficulty|lower|replace('-', '') }}">{{ ch.difficulty }}</span>
@@ -26,7 +26,7 @@
 
             {% if p and p.solved %}
                 <p class="status status-solved"><i class="fa-solid fa-circle-check"></i> SOLVED</p>
-            {% elif p and p.unlocked %}
+            {% elif (p and p.unlocked) or current_user.is_admin %}
                 <a class="btn btn-small" href="{{ url_for('main.detail', code=ch.code) }}">Investigate &rarr;</a>
             {% else %}
                 <p class="status status-locked"><i class="fa-solid fa-lock"></i> LOCKED</p>

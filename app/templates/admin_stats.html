@@ -1,0 +1,119 @@
+<!--
+    admin_stats.html  (Section 3: Challenge Statistics)
+    Route: admin.statistics ("/admin/stats"). Passed in from app/admin.py:
+      summary          - the headline numbers
+      challenge_rows   - one row per challenge
+      player_rows      - one row per player (already searched and sorted)
+      search, sort     - the current filter values, to refill the form
+    The search box is a normal GET form, so the URL looks like
+    /admin/stats?q=ali and can be bookmarked or shared.
+-->
+{% extends "admin_base.html" %}
+{% block title %}Admin &mdash; Challenge Statistics{% endblock %}
+{% block admin_content %}
+
+<section class="stat-grid">
+    <div class="stat-box"><span class="stat-num text-cyan">{{ summary.players }}</span><span class="stat-label">Active players</span></div>
+    <div class="stat-box"><span class="stat-num text-purple">{{ summary.solves }}</span><span class="stat-label">Challenges solved</span></div>
+    <div class="stat-box"><span class="stat-num text-green">{{ summary.completion }}%</span><span class="stat-label">Overall completion</span></div>
+    <div class="stat-box"><span class="stat-num">{{ summary.attempts }}</span><span class="stat-label">Flag attempts</span></div>
+    <div class="stat-box"><span class="stat-num text-amber">{{ summary.hints }}</span><span class="stat-label">Hints used ({{ summary.hint_points }} pts)</span></div>
+    <div class="stat-box"><span class="stat-num text-rose">{{ summary.pending }}</span><span class="stat-label">Pending requests</span></div>
+</section>
+
+<div class="card">
+    <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-flag icon-cyan"></i> Challenge Performance</div>
+        <span class="chip">all approved players</span>
+    </div>
+    <div class="table-scroll">
+    <table class="scoreboard flat">
+        <thead>
+            <tr><th>Code</th><th>Challenge</th><th>Unlocked</th><th>Solved</th><th>Completion</th>
+                <th>Attempts</th><th>Hints used</th><th>First solve</th></tr>
+        </thead>
+        <tbody>
+            {% for row in challenge_rows %}
+            <tr>
+                <td><span class="challenge-code">{{ row.challenge.code }}</span></td>
+                <td>{{ row.challenge.name }}</td>
+                <td>{{ row.unlocked }}</td>
+                <td>{{ row.solved }}</td>
+                <td class="bar-cell">
+                    <div class="mini-bar"><div class="mini-fill" style="width: {{ row.rate }}%"></div></div>
+                    <span>{{ row.rate }}%</span>
+                </td>
+                <td>{{ row.attempts }}</td>
+                <td>{{ row.hints }}</td>
+                <td class="dim-cell">
+                    {% if row.first %}{{ row.first[0] }} &middot; {{ row.first[1].strftime('%m-%d %H:%M') }}{% else %}&mdash;{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+
+<div class="card spaced">
+    <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-users icon-purple"></i> Player Progress</div>
+        <span class="chip chip-purple">showing {{ player_rows|length }} of {{ total_players }}</span>
+    </div>
+
+    <form method="get" action="{{ url_for('admin.statistics') }}" class="search-bar">
+        <div class="search-field">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" name="q" value="{{ search }}" placeholder="Search by username..." autocomplete="off">
+        </div>
+        <select name="sort" onchange="this.form.submit()">
+            <option value="rank" {{ 'selected' if sort == 'rank' else '' }}>Sort: rank</option>
+            <option value="solved" {{ 'selected' if sort == 'solved' else '' }}>Sort: most solved</option>
+            <option value="recent" {{ 'selected' if sort == 'recent' else '' }}>Sort: latest solve</option>
+            <option value="name" {{ 'selected' if sort == 'name' else '' }}>Sort: username A-Z</option>
+        </select>
+        <button type="submit" class="btn btn-small">Search</button>
+        {% if search %}<a class="btn btn-small btn-outline" href="{{ url_for('admin.statistics', sort=sort) }}">Clear</a>{% endif %}
+    </form>
+
+    {% if player_rows %}
+    <div class="table-scroll">
+    <table class="scoreboard flat">
+        <thead>
+            <tr><th>Rank</th><th>Player</th><th>Progress</th><th>Challenges</th>
+                <th>Points</th><th>Hints</th><th>Last solve</th></tr>
+        </thead>
+        <tbody>
+            {% for r in player_rows %}
+            <tr>
+                <td>#{{ r.rank }}</td>
+                <td><a class="user-link" href="{{ url_for('admin.user_detail', user_id=r.user_id) }}">{{ r.username }}</a></td>
+                <td class="bar-cell">
+                    <div class="mini-bar"><div class="mini-fill" style="width: {{ r.pct }}%"></div></div>
+                    <span>{{ r.solved }}/{{ r.states|length }}</span>
+                </td>
+                <td class="chips">
+                    {% for s in r.states %}
+                        <span class="chip-ch ch-{{ s.state }}" title="{{ s.code }} {{ s.name }}: {{ s.state }}">{{ s.code[-2:] }}</span>
+                    {% endfor %}
+                </td>
+                <td>{{ r.points }}</td>
+                <td>{{ r.hints_used }}{% if r.hint_penalty %} <span class="dim-cell">(-{{ r.hint_penalty }})</span>{% endif %}</td>
+                <td class="dim-cell">{{ r.last_solve.strftime('%m-%d %H:%M') if r.last_solve else '—' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    <p class="legend">
+        <span class="chip-ch ch-solved">01</span> solved
+        <span class="chip-ch ch-open">02</span> unlocked
+        <span class="chip-ch ch-locked">03</span> locked
+    </p>
+    {% elif search %}
+        <p class="empty">No players match &ldquo;{{ search }}&rdquo;.</p>
+    {% else %}
+        <p class="empty">No approved players yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

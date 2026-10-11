@@ -1,0 +1,87 @@
+<!--
+    admin_requests.html  (Section 2: Registration Requests)
+    Route: admin.requests_page ("/admin/requests"). New sign-ups land in
+    the pending list and cannot log in until approved here. Each button
+    is a small POST form to the approve / reject / delete routes in
+    app/admin.py.
+-->
+{% extends "admin_base.html" %}
+{% block title %}Admin &mdash; Registration Requests{% endblock %}
+{% block admin_content %}
+
+<div class="card">
+    <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-user-clock icon-purple"></i> Pending Requests</div>
+        <div>
+            <span class="chip chip-purple">{{ pending|length }} waiting</span>
+            <span class="chip">{{ approved_count }} approved players</span>
+        </div>
+    </div>
+
+    {% if pending %}
+    <div class="table-scroll">
+    <table class="scoreboard flat">
+        <thead><tr><th>Username</th><th>Requested (UTC)</th><th class="right">Decision</th></tr></thead>
+        <tbody>
+            {% for u in pending %}
+            <tr>
+                <td><i class="fa-solid fa-user-secret icon-purple"></i> {{ u.username }}</td>
+                <td class="dim-cell">{{ u.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td class="right actions">
+                    <form method="post" action="{{ url_for('admin.approve_request', user_id=u.id) }}" class="inline-form">
+                        <button type="submit" class="act act-approve">Approve</button>
+                    </form>
+                    <form method="post" action="{{ url_for('admin.reject_request', user_id=u.id) }}" class="inline-form">
+                        <button type="submit" class="act act-reject">Reject</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+
+    {% if pending|length > 1 %}
+    <form method="post" action="{{ url_for('admin.approve_all') }}" class="approve-all">
+        <button type="submit" class="btn btn-small">Approve all {{ pending|length }}</button>
+    </form>
+    {% endif %}
+    {% else %}
+        <p class="empty"><i class="fa-solid fa-circle-check text-green"></i> No requests waiting. New registrations will appear here.</p>
+    {% endif %}
+</div>
+
+<div class="card spaced">
+    <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-user-xmark icon-cyan"></i> Rejected Requests</div>
+        <span class="chip">{{ rejected|length }}</span>
+    </div>
+
+    {% if rejected %}
+    <div class="table-scroll">
+    <table class="scoreboard flat">
+        <thead><tr><th>Username</th><th>Requested (UTC)</th><th class="right">Action</th></tr></thead>
+        <tbody>
+            {% for u in rejected %}
+            <tr>
+                <td>{{ u.username }}</td>
+                <td class="dim-cell">{{ u.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td class="right actions">
+                    <form method="post" action="{{ url_for('admin.approve_request', user_id=u.id) }}" class="inline-form">
+                        <button type="submit" class="act act-approve">Approve</button>
+                    </form>
+                    <form method="post" action="{{ url_for('admin.delete_request', user_id=u.id) }}" class="inline-form"
+                          onsubmit="return confirm('Delete this request? The username can then register again.');">
+                        <button type="submit" class="act act-reject">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+        <p class="empty">No rejected requests.</p>
+    {% endif %}
+</div>
+{% endblock %}

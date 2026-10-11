@@ -59,12 +59,21 @@ def register():
         # password. There is no way to reverse a hash back into the
         # original password; login works by hashing the ATTEMPT and
         # comparing hashes (see login() below).
-        user = User(username=username, password_hash=generate_password_hash(password))
+        # status="pending": the account EXISTS but cannot log in until an
+        # admin approves it from Admin -> Registration Requests.
+        user = User(
+            username=username,
+            password_hash=generate_password_hash(password),
+            status="pending",
+        )
 
         db.session.add(user)     # stage this new row for insertion
+        db.session.add(
+            LogEntry(event_type="register_request", detail=f"'{username}' requested an account")
+        )
         db.session.commit()      # actually write it to the database file
 
-        flash("Account created. You may now log in.", "success")
+        flash("Request submitted. An admin must approve your account before you can log in.", "success")
         return redirect(url_for("auth.login"))
 
     # GET request (or nothing matched above): just render the form.
@@ -92,6 +101,16 @@ def login():
         # the result to what's stored in user.password_hash. We never
         # decrypt the stored hash -- hashing is one-way by design.
         if user and check_password_hash(user.password_hash, password):
+            # The password is right, but has an admin approved this account?
+            # We only reveal this AFTER the password checked out, so a stranger
+            # cannot use the login form to discover which usernames exist.
+            if not user.is_approved:
+                if user.status == "rejected":
+                    flash("Your registration request was declined by an admin.", "error")
+                else:
+                    flash("Your registration is still waiting for admin approval.", "error")
+                return render_template("login.html")
+
             # login_user() is provided by Flask-Login. It stores the
             # user's ID in the encrypted session cookie so future
             # requests know who's logged in (via our load_user()
@@ -103,6 +122,9 @@ def login():
             )
             db.session.commit()
 
+            # Admins land straight in the admin panel; players on their dashboard.
+            if user.is_admin:
+                return redirect(url_for("admin.matrix"))
             return redirect(url_for("main.dashboard"))
 
         # Either the username didn't exist, or the password was wrong.

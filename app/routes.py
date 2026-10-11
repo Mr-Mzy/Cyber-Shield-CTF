@@ -86,7 +86,9 @@ def build_leaderboard():
     Ranking rule: more points wins; if points are tied, whoever reached
     their latest solve EARLIER wins (so being first to a score counts).
     """
-    players = User.query.filter_by(is_admin=False).all()
+    # Only APPROVED players are ranked: people still waiting for approval
+    # (or rejected) are not on the board and do not change anyone's rank.
+    players = User.query.filter_by(is_admin=False, status="approved").all()
 
     # Start every player at zero so people who haven't solved anything
     # still appear on the board.
@@ -151,8 +153,13 @@ def inject_navbar_info():
     Admins aren't ranked, so for them we add nothing (base.html shows
     an ADMIN badge instead).
     """
-    if not current_user.is_authenticated or current_user.is_admin:
+    if not current_user.is_authenticated:
         return {}
+
+    # Admins get a small red badge showing how many registration
+    # requests are waiting for a decision (used by base.html).
+    if current_user.is_admin:
+        return {"pending_requests": User.query.filter_by(status="pending").count()}
 
     board = build_leaderboard()
     my_rank = next((r["rank"] for r in board if r["user_id"] == current_user.id), None)
@@ -324,6 +331,10 @@ def detail(code):
     # no Challenge with this code exists, instead of crashing.
     challenge = Challenge.query.filter_by(code=code).first_or_404()
 
+    # Admins get a Progress row too, so the template always has one.
+    if current_user.is_admin:
+        ensure_progress(current_user)
+
     progress = Progress.query.filter_by(
         user_id=current_user.id, challenge_id=challenge.id
     ).first()
@@ -331,7 +342,8 @@ def detail(code):
     # abort(403) = "Forbidden". This is the security check that stops
     # someone from just typing /challenge/CS-06 into the URL bar to
     # skip ahead before they've actually unlocked it.
-    if not progress or not progress.unlocked:
+    # ADMINS ARE EXEMPT: an admin may open any challenge at any time.
+    if not current_user.is_admin and (not progress or not progress.unlocked):
         abort(403)
 
     # IDs of hints this player has already paid for. challenge.html shows
@@ -364,15 +376,16 @@ def reveal_hint(hint_id):
     progress = Progress.query.filter_by(
         user_id=current_user.id, challenge_id=challenge.id
     ).first()
-    if not progress or not progress.unlocked:
+    if not current_user.is_admin and (not progress or not progress.unlocked):
         abort(403)
 
     already = HintReveal.query.filter_by(user_id=current_user.id, hint_id=hint.id).first()
 
     if not already:
         # Hints on a stage you've ALREADY solved are free -- there is
-        # nothing left to lose points on.
-        cost = 0 if progress.solved else (hint.point_cost or 0)
+        # nothing left to lose points on. Admins never pay for hints.
+        already_solved = bool(progress and progress.solved)
+        cost = 0 if (current_user.is_admin or already_solved) else (hint.point_cost or 0)
 
         db.session.add(HintReveal(user_id=current_user.id, hint_id=hint.id, cost_paid=cost))
         db.session.add(
@@ -402,9 +415,11 @@ def challenge_file(code):
         user_id=current_user.id, challenge_id=challenge.id
     ).first()
 
-    # Same unlock check as detail() above -- and also make sure this
-    # particular challenge actually HAS a file (CS-02/04/06 don't).
-    if not progress or not progress.unlocked or not challenge.file_path:
+    # Same unlock check as detail() above (admins are exempt) -- and also
+    # make sure this particular challenge actually HAS a file (CS-02/04/06 don't).
+    if not challenge.file_path:
+        abort(404)
+    if not current_user.is_admin and (not progress or not progress.unlocked):
         abort(403)
 
     # challenge.file_path looks like "cs01_hidden_message/employee_photo.jpg".
@@ -429,10 +444,27 @@ def submit(code):
         user_id=current_user.id, challenge_id=challenge.id
     ).first()
 
+    submitted = request.form.get("flag", "").strip()
+
+    # ---------------- ADMIN PREVIEW ----------------
+    # An admin may test any flag on any stage. We tell them whether it is
+    # right, but record NOTHING that counts: no Submission row, no
+    # progress, no unlocks -- so admin testing never distorts the
+    # attempt counts and statistics that the real players produce.
+    if current_user.is_admin:
+        admin_correct = check_password_hash(challenge.flag_hash, submitted)
+        db.session.add(
+            LogEntry(
+                event_type="admin_test",
+                user_id=current_user.id,
+                detail=f"admin tested {code}: {'correct' if admin_correct else 'incorrect'}",
+            )
+        )
+        db.session.commit()
+        return jsonify(correct=admin_correct, unlocked_next=None, admin_preview=True)
+
     if not progress or not progress.unlocked:
         abort(403)
-
-    submitted = request.form.get("flag", "").strip()
 
     # check_password_hash works for ANY hash made with
     # generate_password_hash -- we're reusing the same hashing
@@ -496,43 +528,3 @@ def scoreboard():
     board = build_leaderboard()
     total_challenges = Challenge.query.count()
     return render_template("scoreboard.html", board=board, total_challenges=total_challenges)
-
-
-# ============================================================================
-# ADMIN ROUTES
-# In a bigger project these would live in their own app/admin.py blueprint,
-# but per the requested folder structure we keep everything non-auth in
-# this one routes.py file.
-# ============================================================================
-
-
-def require_admin():
-    """Small helper: abort with 403 unless the current user is an admin."""
-    if not current_user.is_authenticated or not current_user.is_admin:
-        abort(403)
-
-
-@main_bp.route("/admin")
-@login_required
-def admin_dashboard():
-    """Shows solve/attempt counts per challenge, for admins only."""
-    require_admin()
-
-    all_challenges = Challenge.query.order_by(Challenge.order_index).all()
-    stats = []
-    for ch in all_challenges:
-        solves = Progress.query.filter_by(challenge_id=ch.id, solved=True).count()
-        attempts = Submission.query.filter_by(challenge_id=ch.id).count()
-        stats.append({"challenge": ch, "solves": solves, "attempts": attempts})
-
-    user_count = User.query.count()
-    return render_template("admin_dashboard.html", stats=stats, user_count=user_count)
-
-
-@main_bp.route("/admin/logs")
-@login_required
-def admin_logs():
-    """Shows the most recent 300 audit-log entries, for admins only."""
-    require_admin()
-    entries = LogEntry.query.order_by(LogEntry.timestamp.desc()).limit(300).all()
-    return render_template("admin_logs.html", entries=entries)

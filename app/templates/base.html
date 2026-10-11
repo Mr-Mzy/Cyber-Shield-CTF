@@ -44,7 +44,8 @@
                     <a href="{{ url_for('main.challenge_list') }}"><i class="fa-solid fa-flag"></i> Challenges</a>
                     <a href="{{ url_for('main.scoreboard') }}"><i class="fa-solid fa-trophy"></i> Scoreboard</a>
                     {% if current_user.is_admin %}
-                        <a href="{{ url_for('main.admin_dashboard') }}"><i class="fa-solid fa-user-shield"></i> Admin</a>
+                        <a href="{{ url_for('admin.matrix') }}"><i class="fa-solid fa-user-shield"></i> Admin
+                            {% if pending_requests %}<span class="badge">{{ pending_requests }}</span>{% endif %}</a>
                     {% endif %}
                 {% endif %}
             </nav>

@@ -1,33 +1,53 @@
 <!--
-    admin_dashboard.html
-    --------------------
-    Route: main.admin_dashboard ("/admin"). Only reachable by users
-    with is_admin=True -- enforced in require_admin() in routes.py,
-    NOT by anything in this template. A template can only hide a link;
-    the real security check has to happen on the server.
+    admin_dashboard.html  (Section 1: Active Challenge Matrix)
+    Route: admin.matrix ("/admin"). rows has one entry per challenge:
+    unlocked / solved / attempts / rate, built in app/admin.py.
 -->
-{% extends "base.html" %}
-{% block title %}Admin &mdash; CyberShield{% endblock %}
-{% block content %}
-<h2>&gt; Admin Console</h2>
-<p class="dim">{{ user_count }} registered analysts.</p>
+{% extends "admin_base.html" %}
+{% block title %}Admin &mdash; Challenge Matrix{% endblock %}
+{% block admin_content %}
 
-<table class="scoreboard">
-    <thead>
-        <tr><th>Code</th><th>Name</th><th>Category</th><th>Solves</th><th>Attempts</th></tr>
-    </thead>
-    <tbody>
-        {% for row in stats %}
-        <tr>
-            <td>{{ row.challenge.code }}</td>
-            <td>{{ row.challenge.name }}</td>
-            <td>{{ row.challenge.category }}</td>
-            <td>{{ row.solves }}</td>
-            <td>{{ row.attempts }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="notice">
+    <i class="fa-solid fa-key icon-cyan"></i>
+    <span>Admin access: you can open <strong>any</strong> challenge at any time, even locked ones.
+    Hints are free for you, and flags you test are not recorded in player statistics.</span>
+</div>
 
-<p><a class="btn btn-small" href="{{ url_for('main.admin_logs') }}">View Logs</a></p>
+<div class="card">
+    <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-table-cells icon-cyan"></i> Active Challenge Matrix</div>
+        <div>
+            <span class="chip">{{ player_count }} approved players</span>
+            <a class="btn btn-small btn-outline" href="{{ url_for('admin.logs') }}">System Logs</a>
+        </div>
+    </div>
+
+    <div class="table-scroll">
+    <table class="scoreboard flat">
+        <thead>
+            <tr><th>Code</th><th>Challenge</th><th>Category</th><th>Difficulty</th><th>Pts</th>
+                <th>Unlocked</th><th>Solved</th><th>Completion</th><th>Attempts</th><th></th></tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr>
+                <td><span class="challenge-code">{{ row.challenge.code }}</span></td>
+                <td>{{ row.challenge.name }}</td>
+                <td class="dim-cell">{{ row.challenge.category }}</td>
+                <td><span class="challenge-difficulty diff-{{ row.challenge.difficulty|lower|replace('-', '') }}">{{ row.challenge.difficulty }}</span></td>
+                <td>{{ row.challenge.points }}</td>
+                <td>{{ row.unlocked }}</td>
+                <td>{{ row.solved }}</td>
+                <td class="bar-cell">
+                    <div class="mini-bar"><div class="mini-fill" style="width: {{ row.rate }}%"></div></div>
+                    <span>{{ row.rate }}%</span>
+                </td>
+                <td>{{ row.attempts }}</td>
+                <td><a class="btn btn-small" href="{{ url_for('main.detail', code=row.challenge.code) }}">Open</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
 {% endblock %}

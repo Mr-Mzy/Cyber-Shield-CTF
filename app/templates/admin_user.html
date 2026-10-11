@@ -1,0 +1,63 @@
+<!--
+    admin_user.html
+    ---------------
+    Route: admin.user_detail ("/admin/users/<id>"). One player's progress
+    stage by stage. Opened by clicking a username in the statistics table.
+-->
+{% extends "admin_base.html" %}
+{% block title %}Admin &mdash; {{ player.username }}{% endblock %}
+{% block admin_content %}
+
+<p><a class="alt-link back" href="{{ url_for('admin.statistics') }}">&larr; Back to statistics</a></p>
+
+<section class="stat-grid">
+    <div class="stat-box"><span class="stat-num text-cyan">{{ player.username }}</span><span class="stat-label">Player</span></div>
+    <div class="stat-box"><span class="stat-num text-purple">#{{ entry.rank if entry else '-' }} <small>/ {{ total_players }}</small></span><span class="stat-label">Rank</span></div>
+    <div class="stat-box"><span class="stat-num text-green">{{ entry.points if entry else 0 }}</span><span class="stat-label">Points</span></div>
+    <div class="stat-box"><span class="stat-num">{{ entry.solved if entry else 0 }} <small>/ {{ total_challenges }}</small></span><span class="stat-label">Solved</span></div>
+    <div class="stat-box"><span class="stat-num dim-num">{{ player.created_at.strftime('%Y-%m-%d') }}</span><span class="stat-label">Joined</span></div>
+</section>
+
+<div class="card">
+    <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-list-check icon-cyan"></i> Stage by stage</div>
+    </div>
+    <div class="table-scroll">
+    <table class="scoreboard flat">
+        <thead>
+            <tr><th>Code</th><th>Challenge</th><th>Status</th><th>Solved at (UTC)</th>
+                <th>Attempts</th><th>Wrong</th><th>Hints</th><th>Points earned</th></tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+            <tr>
+                <td><span class="challenge-code">{{ r.challenge.code }}</span></td>
+                <td>{{ r.challenge.name }}</td>
+                <td><span class="state-pill st-{{ r.state }}">{{ r.state }}</span></td>
+                <td class="dim-cell">{{ r.solved_at.strftime('%Y-%m-%d %H:%M') if r.solved_at else '—' }}</td>
+                <td>{{ r.attempts }}</td>
+                <td>{{ r.wrong }}</td>
+                <td>{{ r.hints }}{% if r.hint_cost %} <span class="dim-cell">(-{{ r.hint_cost }})</span>{% endif %}</td>
+                <td>{{ r.earned }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+
+<div class="card spaced">
+    <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-clock-rotate-left icon-purple"></i> Recent activity</div>
+    </div>
+    {% if recent %}
+    <ul class="activity">
+        {% for e in recent %}
+        <li><span class="dim-cell">{{ e.timestamp.strftime('%m-%d %H:%M') }}</span> <span class="chip">{{ e.event_type }}</span> {{ e.detail }}</li>
+        {% endfor %}
+    </ul>
+    {% else %}
+        <p class="empty">No activity recorded yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

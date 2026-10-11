@@ -1,26 +1,31 @@
 <!--
     admin_logs.html
     ---------------
-    Route: main.admin_logs ("/admin/logs"). `entries` is a list of
-    LogEntry rows, newest first, from admin_logs() in routes.py.
+    Route: admin.logs ("/admin/logs"). entries is a list of LogEntry
+    rows, newest first (max 300), from logs() in app/admin.py.
 -->
-{% extends "base.html" %}
-{% block title %}Logs &mdash; CyberShield{% endblock %}
-{% block content %}
-<h2>&gt; System Logs</h2>
-<table class="scoreboard logs-table">
-    <thead>
-        <tr><th>Time (UTC)</th><th>Event</th><th>Detail</th></tr>
-    </thead>
-    <tbody>
-        {% for entry in entries %}
-        <tr>
-            <td>{{ entry.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-            <td>{{ entry.event_type }}</td>
-            <td>{{ entry.detail }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-<p><a class="alt-link" href="{{ url_for('main.admin_dashboard') }}">&larr; Back to admin console</a></p>
+{% extends "admin_base.html" %}
+{% block title %}Admin &mdash; System Logs{% endblock %}
+{% block admin_content %}
+<p><a class="alt-link back" href="{{ url_for('admin.matrix') }}">&larr; Back to the matrix</a></p>
+<div class="card">
+    <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-scroll icon-cyan"></i> System Logs</div>
+        <span class="chip">latest {{ entries|length }}</span>
+    </div>
+    <div class="table-scroll">
+    <table class="scoreboard flat logs-table">
+        <thead><tr><th>Time (UTC)</th><th>Event</th><th>Detail</th></tr></thead>
+        <tbody>
+            {% for entry in entries %}
+            <tr>
+                <td class="dim-cell">{{ entry.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td><span class="chip">{{ entry.event_type }}</span></td>
+                <td>{{ entry.detail }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
 {% endblock %}

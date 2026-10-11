@@ -25,6 +25,7 @@ directly in this file?
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
+from sqlalchemy import inspect, text
 
 # ----------------------------------------------------------------------
 # These two objects are created here at IMPORT TIME, but not yet tied
@@ -82,9 +83,11 @@ def create_app():
     # --------------------------------------------------------------
     from app.auth import auth_bp
     from app.routes import main_bp
+    from app.admin import admin_bp
 
     app.register_blueprint(auth_bp)   # adds /login, /register, /logout
     app.register_blueprint(main_bp)   # adds /, /dashboard, /challenge/..., etc.
+    app.register_blueprint(admin_bp, url_prefix="/admin")   # the admin panel
 
     # --------------------------------------------------------------
     # Create the database tables if they don't already exist.
@@ -100,8 +103,31 @@ def create_app():
     # --------------------------------------------------------------
     with app.app_context():
         db.create_all()
+        upgrade_old_database()
 
     return app
+
+
+def upgrade_old_database():
+    """
+    Small "migration" for databases created BEFORE the registration-
+    approval feature existed.
+
+    db.create_all() only creates tables that are missing -- it never
+    adds a new column to a table that already exists. So if your
+    database file is older than this feature, the `user` table has no
+    `status` column and every login would crash.
+
+    This adds the column when it is missing. DEFAULT 'approved' makes
+    every account that already exists approved, so nobody is locked out.
+    On a brand-new database the column already exists and this does nothing.
+    """
+    columns = {c["name"] for c in inspect(db.engine).get_columns("user")}
+    if "status" not in columns:
+        with db.engine.begin() as connection:
+            connection.execute(
+                text('ALTER TABLE "user" ADD COLUMN status VARCHAR(16) NOT NULL DEFAULT \'approved\'')
+            )
 
 
 # ----------------------------------------------------------------------
@@ -116,4 +142,10 @@ def create_app():
 @login_manager.user_loader
 def load_user(user_id):
     from app.models import User
-    return User.query.get(int(user_id))
+    user = User.query.get(int(user_id))
+
+    # If an admin un-approves or rejects someone who is ALREADY logged
+    # in, returning None here signs them out on their very next click.
+    if user is None or not user.is_approved:
+        return None
+    return user

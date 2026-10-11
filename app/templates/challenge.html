@@ -13,6 +13,12 @@
 {% block title %}{{ challenge.code }} &mdash; CyberShield{% endblock %}
 {% block content %}
 <div class="challenge-detail">
+    {% if current_user.is_admin %}
+    <div class="notice">
+        <i class="fa-solid fa-key icon-cyan"></i>
+        <span>Admin preview: locks are bypassed, hints are free, and flags you submit are not recorded.</span>
+    </div>
+    {% endif %}
     <div class="case-file-header">
         <span class="stamp">CASE FILE</span>
         <h2>{{ challenge.code }} &mdash; {{ challenge.name }}</h2>
@@ -52,13 +58,13 @@
                 <button type="button"
                         class="hint-toggle {{ 'used' if shown else '' }}"
                         data-hint-id="{{ hint.id }}"
-                        data-cost="{{ 0 if progress.solved else hint.point_cost }}"
+                        data-cost="{{ 0 if (current_user.is_admin or (progress and progress.solved)) else hint.point_cost }}"
                         data-number="{{ loop.index }}"
                         {{ 'disabled' if shown else '' }}>
                     {% if shown %}
                         Hint {{ loop.index }} revealed
                     {% else %}
-                        Reveal Hint {{ loop.index }} (-{{ 0 if progress.solved else hint.point_cost }} pts)
+                        Reveal Hint {{ loop.index }} (-{{ 0 if (current_user.is_admin or (progress and progress.solved)) else hint.point_cost }} pts)
                     {% endif %}
                 </button>
                 <p class="hint-text {{ '' if shown else 'hidden' }}" id="hint-text-{{ hint.id }}">{% if shown %}{{ hint.text }}{% endif %}</p>
@@ -103,7 +109,13 @@ document.getElementById('flag-form').addEventListener('submit', async function(e
     // -- res.json() parses that JSON back into a JS object.
     const data = await res.json();
 
-    if (data.correct) {
+    if (data.admin_preview) {
+        // admin testing a flag: say right/wrong, but nothing was recorded
+        resultEl.textContent = data.correct
+            ? '✔ Correct flag (admin preview: nothing recorded).'
+            : '✘ Incorrect flag (admin preview: nothing recorded).';
+        resultEl.className = data.correct ? 'result-correct' : 'result-incorrect';
+    } else if (data.correct) {
         resultEl.textContent = '✔ Correct. Evidence logged.' + (data.unlocked_next ? ` ${data.unlocked_next} unlocked.` : '');
         resultEl.className = 'result-correct';
     } else {
